@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لعبة الثعبان</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f0;--card:#fff;--ink:#12231d;--mute:#5d6f68;--grid:#e3ebe7;--snake:#0f766e;--head:#064e45;--food:#c2410c;--btn:#0f766e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1411;--card:#14221d;--ink:#e8f1ed;--mute:#98aaa3;--grid:#1b2b26;--snake:#2dd4bf;--head:#99f6e4;--food:#fb923c;--btn:#14b8a6}}
+:root[data-theme="dark"]{--bg:#0b1411;--card:#14221d;--ink:#e8f1ed;--mute:#98aaa3;--grid:#1b2b26;--snake:#2dd4bf;--head:#99f6e4;--food:#fb923c;--btn:#14b8a6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,Tahoma,Arial,sans-serif;display:flex;flex-direction:column;align-items:center;padding:12px;min-height:100vh;-webkit-user-select:none;user-select:none}
+h1{margin:4px 0;font-size:1.5rem;font-weight:800}
+.s{display:flex;gap:10px;margin:6px 0}
+.s div{background:var(--card);border-radius:10px;padding:4px 16px;text-align:center;min-width:96px}
+.s small{color:var(--mute);display:block;line-height:1.2}.s b{font-size:1.3rem}
+.bx{position:relative;width:min(92vw,400px)}
+canvas{width:100%;height:auto;aspect-ratio:1;border-radius:14px;background:var(--card);touch-action:none;display:block;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.45);border-radius:14px;color:#fff;text-align:center}
+#ov h2{margin:0;font-size:1.6rem}
+button{font:inherit;font-weight:800;border:0;border-radius:12px;background:var(--btn);color:#fff;padding:10px 22px;cursor:pointer}
+.pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,56px);gap:8px;margin-top:14px;justify-content:center}
+.pad button{padding:0;font-size:1.4rem}
+.pad .u{grid-column:2}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+p{color:var(--mute);margin:8px 0 0;font-size:.85rem}
+</style>
+</head>
+<body>
+<h1>🐍 لعبة الثعبان</h1>
+<div class="s"><div><small>النقاط</small><b id="sc">0</b></div><div><small>أعلى نتيجة</small><b id="bs">0</b></div></div>
+<div class="bx"><canvas id="c" width="400" height="400"></canvas>
+<div id="ov"><h2 id="ot">جاهز؟</h2><div id="os">اسحب بصباعك لتحريك الثعبان</div><button id="go">ابدأ اللعب</button></div></div>
+<div class="pad"><button class="u" data-d="u" aria-label="فوق">▲</button><button class="l" data-d="l" aria-label="يسار">◀</button><button class="d" data-d="d" aria-label="تحت">▼</button><button class="r" data-d="r" aria-label="يمين">▶</button></div>
+<p>كل ما تاكل أكتر، السرعة بتزيد.</p>
+<script>
+const cv=document.getElementById('c'),x=cv.getContext('2d'),N=20,Z=20;
+const V=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const D={u:[0,-1],d:[0,1],l:[-1,0],r:[1,0]};
+let sn,dir,nd,food,score,best=0,run=false,tm;
+try{best=+localStorage.getItem('snk')||0}catch(e){}
+document.getElementById('bs').textContent=best;
+function rf(){do{food=[Math.random()*N|0,Math.random()*N|0]}while(sn.some(s=>s[0]===food[0]&&s[1]===food[1]))}
+function start(){sn=[[10,10],[9,10],[8,10]];dir=nd='r';score=0;document.getElementById('sc').textContent=0;rf();run=true;document.getElementById('ov').style.display='none';clearTimeout(tm);tick()}
+function turn(k){const o={u:'d',d:'u',l:'r',r:'l'};if(k!==o[dir])nd=k}
+function tick(){
+ if(!run)return;
+ dir=nd;const h=[sn[0][0]+D[dir][0],sn[0][1]+D[dir][1]];
+ if(h[0]<0||h[1]<0||h[0]>=N||h[1]>=N||sn.some(s=>s[0]===h[0]&&s[1]===h[1]))return over();
+ sn.unshift(h);
+ if(h[0]===food[0]&&h[1]===food[1]){score++;document.getElementById('sc').textContent=score;rf();if(navigator.vibrate)try{navigator.vibrate(15)}catch(e){}}else sn.pop();
+ draw();tm=setTimeout(tick,Math.max(60,140-score*4));
+}
+function over(){
+ run=false;draw();
+ if(score>best){best=score;document.getElementById('bs').textContent=best;try{localStorage.setItem('snk',best)}catch(e){}}
+ document.getElementById('ot').textContent='خسرت!';
+ document.getElementById('os').textContent='نتيجتك: '+score+(score>=best&&score>0?' (رقم قياسي!)':'');
+ document.getElementById('go').textContent='العب تاني';
+ document.getElementById('ov').style.display='flex';
+}
+function draw(){
+ x.clearRect(0,0,400,400);x.fillStyle=V('--grid');
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++)if((i+j)%2)x.fillRect(i*Z,j*Z,Z,Z);
+ x.fillStyle=V('--food');x.beginPath();x.arc(food[0]*Z+10,food[1]*Z+10,8,0,7);x.fill();
+ sn.forEach((s,i)=>{x.fillStyle=i?V('--snake'):V('--head');x.beginPath();x.roundRect(s[0]*Z+1,s[1]*Z+1,Z-2,Z-2,i?5:8);x.fill()});
+}
+document.getElementById('go').onclick=start;
+document.querySelectorAll('.pad button').forEach(b=>b.onclick=()=>turn(b.dataset.d));
+document.addEventListener('keydown',e=>{const m={ArrowUp:'u',ArrowDown:'d',ArrowLeft:'l',ArrowRight:'r'};if(m[e.key]){e.preventDefault();turn(m[e.key])}});
+let t0;
+cv.addEventListener('touchstart',e=>{t0=e.touches[0]},{passive:true});
+cv.addEventListener('touchend',e=>{if(!t0)return;const t=e.changedTouches[0],dx=t.clientX-t0.clientX,dy=t.clientY-t0.clientY;if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u'))});
+sn=[[10,10],[9,10],[8,10]];food=[15,10];draw();
+</script>
+</body>
+</html>
